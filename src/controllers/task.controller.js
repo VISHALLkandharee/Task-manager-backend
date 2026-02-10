@@ -100,21 +100,54 @@ async function deleteTask(req, res) {
 }
 
 const filterTask = async (req, res) => {
-  const filter = { userId: req.user.userId };
-  const { status, dueDate, title } = req.query;
+  try {
+    const matchFilter = { userId: req.user.userId };
+    const { status, dueDate, title, page = 1, limit = 10 } = req.query;
 
-  if (status) filter.status = status;
-  if (dueDate) filter.dueDate = { $lte: new Date(dueDate) };
-  if (title) filter.title = { $regex: title, $options: "i" }; // case-insensitive search
+    if (status) matchFilter.status = status;
+    if (dueDate) matchFilter.dueDate = { $lte: new Date(dueDate) };
+    if (title) matchFilter.title = { $regex: title, $options: "i" };
 
-  const tasks = await Task.find(filter);
+    console.log(matchFilter);
 
-  if (!tasks)
-    return res
-      .status(404)
-      .json({ message: "No tasks found matching the criteria" });
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
 
-  res.status(200).json({ tasks });
+    const result = await Task.aggregate([
+      { $match: matchFilter },  
+      {
+        $facet: {  
+          totalCount: [{ $count: "value" }],
+          paginatedTasks: [
+            { $sort: { createdAt: -1 } },  
+            { $skip: skip },
+            { $limit: limitNum }
+          ]
+        }
+      },
+      {
+        $project: {  
+          totalCount: { $ifNull: [{ $first: "$totalCount.value" }, 0] },
+          tasks: "$paginatedTasks",
+          page: pageNum,
+          pages: { $ceil: [{ $divide: [{ $ifNull: [{ $first: "$totalCount.value" }, 0] }, limitNum] } ] }
+        }
+      }
+    ]);
+
+    console.log(result);
+
+    const data = result[0] || { totalCount: 0, tasks: [], page: 1, pages: 1 };
+
+    if (data.tasks.length === 0)
+      return res.status(404).json({ message: "No tasks found matching the criteria" });
+
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
 };
+
 
 export { getTasks, createTask, updateTask, deleteTask, filterTask };

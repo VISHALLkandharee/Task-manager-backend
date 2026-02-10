@@ -41,7 +41,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
-connectDb();
+await connectDb();
 
 app.use("/api/auth", auth);
 app.use("/api/tasks", task);
