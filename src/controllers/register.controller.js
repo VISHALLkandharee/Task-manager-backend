@@ -59,7 +59,7 @@ const RegisterUser = async (req, res) => {
       username,
       password: hashedPassword,
       email,
-      avatar: avatar.url, // save the file path
+      avatar: avatar.secure_url, // save the file path
     });
 
     // Remove password from response
@@ -224,7 +224,7 @@ async function updateProfilePicture(req, res) {
       return res.status(500).json({ message: "Avatar file is required" });
     }
 
-    user.avatar = updatedAvatar.url
+    user.avatar = updatedAvatar.secure_url
 
     await user.save();
 
