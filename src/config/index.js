@@ -6,12 +6,20 @@ import mongoose from 'mongoose';
 const MONGO_URI = process.env.MONGO_URI || "";
 
 async function connectDb (){
-    try {
-        mongoose.connect(MONGO_URI, {})
+    if (!MONGO_URI) {
+        console.error("Missing MONGO_URI environment variable.");
+        process.exit(1);
+    }
 
-        console.log("MongoDB Connected...!")
+    try {
+        await mongoose.connect(MONGO_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
+
+        console.log("MongoDB Connected...!");
     } catch (error) {
-        console.log("Failed! Connecting MongoDB")
+        console.error("Failed to connect to MongoDB:", error.message || error);
         process.exit(1);
     }
 }
