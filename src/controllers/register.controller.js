@@ -3,6 +3,27 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
 
+//extra stuff ---can be ignore
+const SAAS_PULSE_API_KEY = "sp_live_b9b2f1c53f808835b442186b9b5a591265bfe0f60ee73877"; 
+const SAAS_PULSE_ENDPOINT = "http://localhost:8000/api/v1/event"
+
+//extra stuff ---can be ignore
+const track_PulseEvent = (eventname, metadata = {}) => {
+  try {
+    fetch(SAAS_PULSE_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "x-api-key": SAAS_PULSE_API_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ event: eventName, metadata }),
+    }).catch(err => console.error("Pulse error:", err)); // Fire and forget!
+  } catch (error) {
+    console.error("Pulse connection error:", error.message);
+  }
+}
+
+
 const generateAccessAndRefreshToken = (user) => {
   const accesToken = jwt.sign(
     { userId: user._id, username: user.username },
@@ -60,6 +81,13 @@ const RegisterUser = async (req, res) => {
       password: hashedPassword,
       email,
       avatar: avatar.secure_url, // save the file path
+    });
+
+    //extra stuff ---can be ignore
+       await track_PulseEvent("USER_SIGNUP", {
+      email: newUser.email,
+      plan: planSelected || "FREE",
+      source: "Organic"
     });
 
     // Remove password from response
